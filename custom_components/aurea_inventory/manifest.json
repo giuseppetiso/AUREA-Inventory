@@ -1,0 +1,10 @@
+{
+  "domain": "aurea_inventory",
+  "name": "AUREA HA Inventory",
+  "version": "1.2.2",
+  "documentation": "https://github.com/giuseppetiso/AUREA-Inventory",
+  "issue_tracker": "https://github.com/giuseppetiso/AUREA-Inventory/issues",
+  "codeowners": ["@giuseppetiso"],
+  "integration_type": "service",
+  "requirements": []
+}
