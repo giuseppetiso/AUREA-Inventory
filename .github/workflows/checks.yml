@@ -1,0 +1,41 @@
+name: Inventory · verifica e release
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths: ['custom_components/**', 'tests/**', '.github/workflows/checks.yml']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Compila e verifica esportazione e privacy
+        run: |
+          python -m compileall -q custom_components
+          python -m unittest discover -s tests -v
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: tests
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pubblica versione verificata per HACS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,subprocess,os
+          version=json.load(open('custom_components/aurea_inventory/manifest.json'))['version']
+          tag='v'+version
+          exists=subprocess.run(['gh','release','view',tag],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+          if exists.returncode:
+              subprocess.run(['gh','release','create',tag,'--target',os.environ['GITHUB_SHA'],
+                  '--title','AUREA Inventory '+version,'--notes-file','release-notes.md','--latest'],check=True)
+          PY
