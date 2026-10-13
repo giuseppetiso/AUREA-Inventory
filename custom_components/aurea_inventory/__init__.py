@@ -22,8 +22,10 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
+from .kim_report import select_kim_attributes
+
 DOMAIN = "aurea_inventory"
-COMPONENT_VERSION = "1.2.2"
+COMPONENT_VERSION = "1.2.3"
 CONF_GITHUB_TOKEN = "github_token"
 CONF_GITHUB_REPOSITORY = "github_repository"
 CONF_GITHUB_PATH = "github_path"
@@ -69,6 +71,8 @@ SENSITIVE_CONFIG_KEYS = {
     "entity_picture", "webhook", "webhook_id", "url", "host",
 }
 SENSITIVE_TEXT_PATTERNS = (
+    (re.compile(r"github_pat_[A-Za-z0-9_]+|gh[pousr]_[A-Za-z0-9]+|sk-[A-Za-z0-9_-]{12,}|AIza[0-9A-Za-z_-]{20,}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"), "[REDACTED_CREDENTIAL]"),
+    (re.compile(r"(?i)(?:token|password|api[_ -]?key|chiave api)\s*[:=]\s*[^\s,;]+"), "[REDACTED_CREDENTIAL]"),
     (re.compile(r"https?://[^\s'\"]+", re.IGNORECASE), "[REDACTED_URL]"),
     (re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._~+\-/]+=*"), r"\1[REDACTED]"),
     (re.compile(r"(?i)(token[=:]\s*)[^\s,;]+"), r"\1[REDACTED]"),
@@ -153,12 +157,14 @@ def _plain(value: Any) -> Any:
     return getattr(value, "value", value)
 
 
-def _safe_attrs(attrs: dict[str, Any]) -> dict[str, Any]:
-    return {
+def _safe_attrs(attrs: dict[str, Any], entity_id: str = "") -> dict[str, Any]:
+    standard = {
         key: _sanitize_config(value, key)
         for key, value in attrs.items()
         if key in SAFE_ATTRS and key not in BLOCKED
     }
+    standard.update(_sanitize_config(select_kim_attributes(entity_id, attrs)))
+    return standard
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -265,7 +271,7 @@ async def _build_inventory(hass: HomeAssistant) -> dict[str, Any]:
             "disabled_by": disabled_by,
             "hidden_by": hidden_by,
             "device": device_info,
-            "attributes": _safe_attrs(dict(state.attributes)),
+            "attributes": _safe_attrs(dict(state.attributes), entity_id),
             "last_changed": state.last_changed.isoformat(),
             "last_updated": state.last_updated.isoformat(),
         })

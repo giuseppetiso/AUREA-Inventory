@@ -37,3 +37,14 @@ The integration registers these actions:
 
 The local inventory is refreshed every 5 minutes and GitHub synchronization runs every
 30 minutes.
+
+## KIM diagnostic reports (1.2.3)
+
+The exporter includes known diagnostic fields only for KIM's exact sensor IDs: module checks,
+incident pages, coherent report IDs, resolutions, voice providers and timings, and diagnostic reset
+metadata. Unknown fields and nested keys are excluded. The existing recursive privacy sanitizer
+then redacts credentials, URLs and network/location data. It never exports audio or raw voice text.
+
+Update AUREA Inventory in HACS and restart HA. The existing refresh/sync services and schedules
+apply; this update does not modify configuration or household automations. A fresh inventory with
+component_version 1.2.3 is required before the remote report details can be read.
